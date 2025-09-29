@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-blue': '#1e40af',
+                        'secondary-green': '#10b981',
+                        'accent-red': '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for status badges and responsiveness */
+        
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .status-issued {
+            background-color: #fef3c7;
+            color: #d97706;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+        
+        .status-available {
+            background-color: #d1fae5;
+            color: #059669;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+        
+        .status-overdue {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+            animation: pulse-red 1s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+        /* Ensure table header sticks on scroll */
+        
+        #book-table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #f9fafb;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- MARQUEE FINE NOTICE START -->
+        <div class="w-full bg-accent-red text-white py-2 px-4 rounded-lg shadow-xl">
+            <marquee behavior="scroll" direction="left" class="font-bold text-lg tracking-wider">
+                *** IMPORTANT NOTICE *** You will have to pay a fine after the due date (₹1.00 per day overdue). Please return books on time!
+            </marquee>
+        </div>
+        <!-- MARQUEE FINE NOTICE END -->
+
+        <header class="bg-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-4xl font-extrabold text-primary-blue text-center">Library Management System</h1>
+            <p id="message-display" class="mt-2 text-center text-sm font-medium text-gray-700"></p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Form Section (Col 1) -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-lg h-fit">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">Add a New Book</h2>
+                <form id="book-form" class="space-y-4">
+                    <div>
+                        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title:</label>
+                        <input type="text" id="title" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue">
+                    </div>
+                    <div>
+                        <label for="author" class="block text-sm font-medium text-gray-700 mb-1">Author:</label>
+                        <input type="text" id="author" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue">
+                    </div>
+                    <div>
+                        <label for="pages" class="block text-sm font-medium text-gray-700 mb-1">Pages:</label>
+                        <input type="number" id="pages" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue">
+                    </div>
+                    <div class="flex items-center space-x-2 pt-2">
+                        <input type="checkbox" id="read" class="h-4 w-4 text-secondary-green border-gray-300 rounded focus:ring-secondary-green">
+                        <label for="read" class="text-sm font-medium text-gray-700">Read Status (Optional)</label>
+                    </div>
+                    <button type="submit" class="add-btn w-full py-2 bg-secondary-green hover:bg-green-600 text-white font-semibold rounded-lg shadow-md transition duration-150 ease-in-out">
+                        Add Book
+                    </button>
+                </form>
+            </div>
+
+            <!-- Display Section (Col 2-3) -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4 border-b pb-2">My Books</h2>
+
+                <!-- Search Bar -->
+                <div class="mb-4">
+                    <input type="text" id="search-input" placeholder="Search by Title or Author..." class="w-full p-3 border-2 border-primary-blue rounded-lg focus:ring-primary-blue focus:border-primary-blue shadow-inner transition duration-150">
+                </div>
+
+                <!-- Books Table -->
+                <div class="overflow-x-auto max-h-96" style="max-height: 400px;">
+                    <table id="book-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Title</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Author</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fine (₹)</th>
+                                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="book-list" class="bg-white divide-y divide-gray-200">
+                            <!-- Book rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === CORE LOGIC AND DATA CLASSES ===
+
+        // 1. Book Class (Data Model)
+        class Book {
+            constructor(title, author, pages, read) {
+                // Unique ID generated from timestamp + random number
+                this.id = Date.now().toString(36) + Math.random().toString(36).substr(2);
+                this.title = title;
+                this.author = author;
+                this.pages = pages;
+                this.read = read; // Simple read status
+                this.isIssued = false; // New: true if currently borrowed
+                this.dueDate = null; // New: Date book is due (ISO string)
+            }
+        }
+
+        // 2. Fine Calculation Logic
+        function calculateFine(dueDateStr) {
+            if (!dueDateStr) return 0;
+
+            const dueDate = new Date(dueDateStr);
+            const today = new Date();
+
+            // Normalize dates to midnight for accurate day-by-day comparison
+            today.setHours(0, 0, 0, 0);
+            dueDate.setHours(0, 0, 0, 0);
+
+            if (today <= dueDate) return 0; // Not overdue
+
+            const diffTime = today - dueDate;
+            // Calculate number of full days overdue
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            const fineRatePerDay = 1.00; // ₹1.00 fine per day
+
+            return (diffDays * fineRatePerDay).toFixed(2);
+        }
+
+        // 3. Store Class (Handles localStorage Persistence)
+        class Store {
+            static getBooks() {
+                try {
+                    const storedBooks = localStorage.getItem('books');
+                    return storedBooks ? JSON.parse(storedBooks) : [];
+                } catch (e) {
+                    console.error("Error reading from localStorage:", e);
+                    return [];
+                }
+            }
+
+            static saveBooks(books) {
+                try {
+                    localStorage.setItem('books', JSON.stringify(books));
+                } catch (e) {
+                    console.error("Error writing to localStorage:", e);
+                    UI.showAlert('Failed to save data. Local Storage error.', 'error');
+                }
+            }
+
+            static addBook(book) {
+                const books = Store.getBooks();
+                books.push(book);
+                Store.saveBooks(books);
+            }
+
+            static removeBook(id) {
+                let books = Store.getBooks();
+                books = books.filter(book => book.id !== id);
+                Store.saveBooks(books);
+            }
+
+            static updateBookStatus(id, newStatus) {
+                let books = Store.getBooks();
+                const bookIndex = books.findIndex(book => book.id === id);
+
+                if (bookIndex !== -1) {
+                    const book = books[bookIndex];
+
+                    if (newStatus === 'issue') {
+                        // Set issued status and calculate due date (7 days from now)
+                        const dueDate = new Date();
+                        dueDate.setDate(dueDate.getDate() + 7);
+                        book.isIssued = true;
+                        book.dueDate = dueDate.toISOString().split('T')[0]; // Store as YYYY-MM-DD
+                        UI.showAlert(`${book.title} issued. Due on ${book.dueDate}.`, 'success');
+                    } else if (newStatus === 'return') {
+                        // Calculate fine before resetting status
+                        const fineAmount = calculateFine(book.dueDate);
+
+                        // --- Explicitly clear all issue-related fields ---
+                        book.isIssued = false;
+                        book.dueDate = null; // Clears the due date
+                        // -----------------------------------------------------------
+
+                        if (fineAmount > 0) {
+                            // ENHANCED ALERT: Tell the user the action they need to take.
+                            UI.showAlert(`${book.title} returned. FINE: ₹${fineAmount}. Please collect this amount from the patron.`, 'warning');
+                        } else {
+                            UI.showAlert(`${book.title} returned. No fine.`, 'success');
+                        }
+                    }
+
+                    // Save the updated book object back to storage
+                    Store.saveBooks(books);
+
+                    // Refresh UI to reflect cleared fields immediately
+                    UI.displayBooks();
+                }
+            }
+        }
+
+        // 4. UI Class (Handles Display and Interactions)
+        class UI {
+            // Function to filter and display books
+            static displayBooks(filter = '') {
+                const bookList = document.querySelector('#book-list');
+                bookList.innerHTML = ''; // Clear existing list
+
+                const books = Store.getBooks();
+                const lowerCaseFilter = filter.toLowerCase();
+
+                // Filter books based on title or author
+                const filteredBooks = books.filter(book =>
+                    book.title.toLowerCase().includes(lowerCaseFilter) ||
+                    book.author.toLowerCase().includes(lowerCaseFilter)
+                );
+
+                filteredBooks.forEach((book) => UI.addBookToList(book));
+
+                // Update header message
+                document.getElementById('message-display').textContent = `Showing ${filteredBooks.length} of ${books.length} books.`;
+            }
+
+            static addBookToList(book) {
+                const list = document.querySelector('#book-list');
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-100', 'transition', 'duration-150');
+                row.setAttribute('data-id', book.id); // Set unique ID on the row
+
+                let statusText;
+                let statusClass;
+                let dueDateDisplay = '—';
+                let fineDisplay = '—';
+                let actionButton;
+
+                if (book.isIssued) {
+                    const fine = calculateFine(book.dueDate);
+                    if (fine > 0) {
+                        statusText = 'OVERDUE';
+                        statusClass = 'status-overdue';
+                        fineDisplay = `₹${fine}`;
+                    } else {
+                        statusText = 'ISSUED';
+                        statusClass = 'status-issued';
+                    }
+                    dueDateDisplay = book.dueDate;
+                    actionButton = `<button class="return-btn bg-secondary-green hover:bg-green-600 text-white font-medium py-1 px-3 rounded-full text-sm transition">Return</button>`;
+                } else {
+                    // Book is available
+                    statusText = book.read ? 'Available (Read)' : 'Available (Unread)';
+                    statusClass = 'status-available';
+                    actionButton = `<button class="issue-btn bg-primary-blue hover:bg-blue-800 text-white font-medium py-1 px-3 rounded-full text-sm transition">Issue</button>`;
+
+                    // FINE and DUE DATE remain '—' as initialized, because isIssued is false
+                }
+
+                row.innerHTML = `
+                    <td class="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${book.title}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500">${book.author}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm"><span class="${statusClass}">${statusText}</span></td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-600">${dueDateDisplay}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm font-bold text-accent-red">${fineDisplay}</td>
+                    <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-500 space-x-2">
+                        ${actionButton}
+                        <button class="delete-btn bg-accent-red hover:bg-red-700 text-white font-medium py-1 px-3 rounded-full text-sm transition">Remove</button>
+                    </td>
+                `;
+
+                list.appendChild(row);
+            }
+
+            static clearFields() {
+                document.querySelector('#title').value = '';
+                document.querySelector('#author').value = '';
+                document.querySelector('#pages').value = '';
+                document.querySelector('#read').checked = false;
+            }
+
+            // Custom non-blocking message box replacement for alert()
+            static showAlert(message, type) {
+                const messageDisplay = document.getElementById('message-display');
+                let colorClass;
+
+                switch (type) {
+                    case 'success':
+                        colorClass = 'text-white bg-secondary-green';
+                        break;
+                    case 'error':
+                        colorClass = 'text-white bg-accent-red';
+                        break;
+                    case 'warning':
+                        colorClass = 'text-gray-800 bg-yellow-300';
+                        break;
+                    default:
+                        colorClass = 'text-gray-700 bg-gray-200';
+                }
+
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 p-3 rounded-lg shadow-xl font-bold z-50 transition duration-300 ${colorClass}`;
+                alertDiv.textContent = message;
+
+                // Add to body and automatically remove after 3 seconds
+                document.body.appendChild(alertDiv);
+                setTimeout(() => {
+                    alertDiv.remove();
+                }, 3000);
+            }
+        }
+
+        // === EVENT LISTENERS ===
+
+        // Event 1: Display Books on page load
+        document.addEventListener('DOMContentLoaded', () => UI.displayBooks());
+
+        // Event 2: Add a Book
+        document.querySelector('#book-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Get form values
+            const title = document.querySelector('#title').value;
+            const author = document.querySelector('#author').value;
+            const pages = document.querySelector('#pages').value;
+            const read = document.querySelector('#read').checked;
+
+            if (!title || !author || !pages) {
+                UI.showAlert('Please fill in all fields.', 'error');
+                return;
+            }
+
+            // Create and add book
+            const book = new Book(title, author, pages, read);
+            Store.addBook(book);
+            UI.displayBooks(); // Refresh list to show new book
+
+            UI.showAlert('Book added successfully!', 'success');
+            UI.clearFields();
+        });
+
+        // Event 3: Table Actions (Remove, Issue, Return) using Event Delegation
+        document.querySelector('#book-list').addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            if (!row) return;
+
+            const id = row.getAttribute('data-id');
+
+            if (e.target.classList.contains('delete-btn')) {
+                // Remove Book
+                Store.removeBook(id);
+                row.remove(); // Remove from UI
+                UI.showAlert('Book removed.', 'warning');
+                UI.displayBooks(); // Update count
+            } else if (e.target.classList.contains('issue-btn')) {
+                // Issue Book
+                Store.updateBookStatus(id, 'issue');
+            } else if (e.target.classList.contains('return-btn')) {
+                // Return Book
+                Store.updateBookStatus(id, 'return');
+            }
+        });
+
+        // Event 4: Search functionality (real-time filtering)
+        document.querySelector('#search-input').addEventListener('input', (e) => {
+            const filterText = e.target.value;
+            UI.displayBooks(filterText);
+        });
+    </script>
+</body>
+
+  </html>
